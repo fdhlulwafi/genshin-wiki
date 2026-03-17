@@ -26,6 +26,9 @@ class JsonStore:
 
     def save_category(self, category: str, items: list[dict], name_key: str = "name") -> list[Path]:
         """Save all items in a category. Also saves _all.json aggregate."""
+        category_dir = self.data_dir / category
+        category_dir.mkdir(parents=True, exist_ok=True)
+
         paths = []
         for item in items:
             name = item.get(name_key, item.get("id", "unknown"))
@@ -33,7 +36,7 @@ class JsonStore:
             paths.append(path)
 
         # Save aggregate
-        agg_path = self.data_dir / category / "_all.json"
+        agg_path = category_dir / "_all.json"
         agg_path.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
         return paths
 

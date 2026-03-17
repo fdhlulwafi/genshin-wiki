@@ -70,32 +70,45 @@ async def get_lore(topic: str):
     return item
 
 
-async def _run_fetch(limit: int | None):
+async def _run_fetch(category: str | None, limit: int | None):
     """Background task to re-fetch data."""
-    from scripts.fetch_all import main as fetch_main
-
     refresh_state["running"] = True
     refresh_state["started_at"] = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     refresh_state["completed_at"] = None
     refresh_state["error"] = None
 
     try:
-        await fetch_main(limit=limit)
+        if category == "lore":
+            from fetchers import FandomWikiFetcher
+            async with FandomWikiFetcher() as fetcher:
+                items = await fetcher.fetch_lore(limit=limit)
+                store.save_category("lore", items, name_key="title")
+        elif category:
+            from fetchers import GenshinDBFetcher
+            async with GenshinDBFetcher() as fetcher:
+                items = await fetcher.fetch_category(category, limit=limit)
+                store.save_category(category, items)
+        else:
+            from scripts.fetch_all import main as fetch_main
+            await fetch_main(limit=limit)
+
+        # Rebuild index
+        store.build_index()
         refresh_state["completed_at"] = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     except Exception as e:
         refresh_state["error"] = str(e)
     finally:
         refresh_state["running"] = False
-        refresh_state["current_category"] = None
 
 
 @app.post("/refresh")
-async def refresh(background_tasks: BackgroundTasks, limit: int | None = None):
-    """Trigger a background re-fetch of all data."""
+async def refresh(background_tasks: BackgroundTasks, category: str | None = None, limit: int | None = None):
+    """Trigger a background re-fetch. Optionally specify a single category."""
     if refresh_state["running"]:
         return {"status": "already running", "started_at": refresh_state["started_at"]}
-    background_tasks.add_task(_run_fetch, limit)
-    return {"status": "refresh started"}
+    background_tasks.add_task(_run_fetch, category, limit)
+    target = category or "all"
+    return {"status": "refresh started", "target": target}
 
 
 @app.get("/refresh/status")

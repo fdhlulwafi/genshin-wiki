@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 async def main(limit: int | None = None, skip_lore: bool = False):
     store = JsonStore()
 
-    # Fetch from genshin-db-api
+    # Fetch from genshin-db-api (save each category immediately)
     async with GenshinDBFetcher() as fetcher:
-        all_data = await fetcher.fetch_all(limit=limit)
-        for category, items in all_data.items():
+        for category in CATEGORIES:
+            logger.info(f"Starting category: {category}")
+            items = await fetcher.fetch_category(category, limit=limit)
             store.save_category(category, items)
             logger.info(f"Saved {len(items)} {category}")
 
