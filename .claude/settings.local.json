@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:genshin-impact.fandom.com)",
+      "WebSearch",
+      "WebFetch(domain:genshin.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:genshin-db-api.vercel.app)",
+      "Bash(python:*)",
+      "Bash(gh repo:*)"
+    ]
+  }
+}

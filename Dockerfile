@@ -13,9 +13,9 @@ COPY . .
 VOLUME /app/data
 RUN mkdir -p /app/data
 
-EXPOSE 8000
+EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD curl -f http://localhost:80/ || exit 1
 
-CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--timeout-keep-alive", "75"]
+CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "80", "--workers", "1", "--timeout-keep-alive", "75"]
