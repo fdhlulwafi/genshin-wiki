@@ -14,6 +14,11 @@ async def root():
     return {"service": "Genshin Impact Knowledge Base", "version": "1.0.0"}
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.get("/categories")
 async def list_categories():
     """List all available categories."""
