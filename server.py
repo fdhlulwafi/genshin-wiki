@@ -55,9 +55,18 @@ async def get_item(category: str, name: str):
 
 
 @app.get("/search")
-async def search(q: str = Query(..., min_length=1), limit: int = Query(20, ge=1, le=100)):
-    """Search across all data by keyword."""
+async def search(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(20, ge=1, le=100),
+    full: bool = Query(False, description="Include full item data in results"),
+):
+    """Search across all data by keyword. Use full=true to include complete item data."""
     results = store.search(q, limit=limit)
+    if full:
+        for result in results:
+            data = store.load_item(result["category"], result["name"])
+            if data:
+                result["data"] = data
     return {"query": q, "count": len(results), "results": results}
 
 
