@@ -85,10 +85,11 @@ class JsonStore:
             for item in items:
                 name = str(item.get("name", item.get("id", "")))
                 keywords = self._extract_keywords(item)
+                safe = re.sub(r'[<>:"/\\|?*]', '_', name)
                 entry = {
                     "category": category,
                     "name": name,
-                    "file": f"{category}/{re.sub(r'[<>:\"/\\\\|?*]', '_', name)}.json",
+                    "file": f"{category}/{safe}.json",
                 }
                 for kw in keywords:
                     kw_lower = kw.lower()
