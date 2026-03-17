@@ -38,4 +38,4 @@ RETRY_BACKOFF = float(os.getenv("RETRY_BACKOFF", "2.0"))  # exponential backoff 
 
 # API server
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "80"))
+API_PORT = int(os.getenv("API_PORT", "8000"))
