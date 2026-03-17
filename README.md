@@ -2,6 +2,8 @@
 
 Pre-fetched Genshin Impact data served via FastAPI. Designed as a data source for an n8n chatbot workflow.
 
+**Live:** `genshin-wiki.fiverse.my`
+
 ## How It Works
 
 1. **Fetch** — Collects data from [genshin-db-api](https://github.com/theBowja/genshin-db-api) and [Fandom Wiki API](https://genshin-impact.fandom.com)
@@ -28,25 +30,159 @@ python scripts/fetch_all.py
 python scripts/fetch_all.py --limit 5
 
 # Start the API server
-uvicorn api.server:app --port 8000
+uvicorn server:app --port 8000
 ```
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/categories` | List all categories |
-| `GET` | `/categories/{category}` | List items in a category |
-| `GET` | `/categories/{category}/{name}` | Get item detail |
-| `GET` | `/search?q=...` | Keyword search across all data |
-| `GET` | `/lore/{topic}` | Get lore content |
-| `POST` | `/refresh` | Trigger background re-fetch |
+Base URL: `https://genshin-wiki.fiverse.my`
 
-### Example
+Interactive docs: `https://genshin-wiki.fiverse.my/docs`
+
+### `GET /` — Root
+
+Returns service info.
 
 ```bash
-curl http://localhost:8000/search?q=hu+tao
-curl http://localhost:8000/categories/characters/Hu%20Tao
+curl https://genshin-wiki.fiverse.my/
+```
+
+```json
+{
+  "service": "Genshin Impact Knowledge Base",
+  "version": "1.0.0"
+}
+```
+
+### `GET /health` — Health Check
+
+Used by Docker healthcheck to verify the server is running.
+
+```bash
+curl https://genshin-wiki.fiverse.my/health
+```
+
+```json
+{
+  "status": "ok"
+}
+```
+
+### `GET /categories` — List Categories
+
+Returns all available data categories.
+
+```bash
+curl https://genshin-wiki.fiverse.my/categories
+```
+
+```json
+["achievements", "artifacts", "characters", "domains", "enemies", "foods", "materials", "weapons"]
+```
+
+### `GET /categories/{category}` — List Items
+
+Returns all item names within a category.
+
+**Path parameters:**
+- `category` — One of: `characters`, `weapons`, `artifacts`, `materials`, `enemies`, `domains`, `foods`, `achievements`, `lore`
+
+```bash
+curl https://genshin-wiki.fiverse.my/categories/characters
+```
+
+```json
+["Albedo", "Amber", "Barbara", "Bennett", ...]
+```
+
+### `GET /categories/{category}/{name}` — Get Item Detail
+
+Returns full data for a specific item.
+
+**Path parameters:**
+- `category` — The category name
+- `name` — The item name (URL-encoded if it contains spaces)
+
+```bash
+curl https://genshin-wiki.fiverse.my/categories/characters/Hu%20Tao
+```
+
+```json
+{
+  "id": 10000046,
+  "name": "Hu Tao",
+  "title": "Fragrance in Thaw",
+  "description": "The 77th Director of the Wangsheng Funeral Parlor...",
+  "weaponType": "WEAPON_POLE_ARM",
+  "element": "Fire",
+  "rarity": 5,
+  ...
+}
+```
+
+### `GET /search` — Keyword Search
+
+Searches across all data using keyword matching. Returns results ranked by relevance.
+
+**Query parameters:**
+- `q` (required) — Search query
+- `limit` (optional, default: 20, max: 100) — Max results to return
+
+```bash
+curl "https://genshin-wiki.fiverse.my/search?q=pyro+polearm"
+```
+
+```json
+{
+  "query": "pyro polearm",
+  "count": 3,
+  "results": [
+    {
+      "category": "characters",
+      "name": "Hu Tao",
+      "file": "characters/Hu Tao.json",
+      "score": 4
+    },
+    ...
+  ]
+}
+```
+
+### `GET /lore/{topic}` — Get Lore
+
+Returns lore content fetched from Fandom Wiki.
+
+**Path parameters:**
+- `topic` — The lore topic name (URL-encoded if it contains spaces)
+
+```bash
+curl https://genshin-wiki.fiverse.my/lore/Mondstadt
+```
+
+```json
+{
+  "title": "Mondstadt",
+  "page_id": 1234,
+  "extract": "Mondstadt is the city of freedom...",
+  "source": "fandom_wiki"
+}
+```
+
+### `POST /refresh` — Refresh Data
+
+Triggers a background re-fetch of all data from source APIs. Returns immediately.
+
+**Query parameters:**
+- `limit` (optional) — Limit items per category (for testing)
+
+```bash
+curl -X POST https://genshin-wiki.fiverse.my/refresh
+```
+
+```json
+{
+  "status": "refresh started"
+}
 ```
 
 ## Scripts
@@ -77,6 +213,7 @@ docker exec <container> python scripts/fetch_all.py
 
 1. Push to GitHub
 2. Add as a new service in Dokploy
-3. Set build type to Dockerfile
-4. Add volume mount: `/app/data`
-5. Deploy, then trigger `POST /refresh` to populate data
+3. Set build type to **Dockerfile**
+4. Add volume mount: name `genshin-data`, path `/app/data`
+5. Add domain, set proxy to `http://localhost:80`
+6. Deploy, then trigger `POST /refresh` to populate data
